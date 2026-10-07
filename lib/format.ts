@@ -5,10 +5,11 @@ import { INTL_LOCALES, DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
  *
  * The amount is the same number of cents whichever language is selected, and the
  * tenant's currency is a property of the tenant, not of the reader. Rendering
- * "$1,234.56" to somebody whose books are kept in euros would misstate every total
- * in the product. So the locale moves the separators and the symbol stays EUR.
+ * "€1.234,56" to somebody whose books are kept in dollars would misstate every
+ * total in the product. So the locale moves the separators and the symbol stays
+ * USD.
  */
-const CURRENCY = "EUR";
+const CURRENCY = "USD";
 
 /**
  * Formatters are cached per locale.

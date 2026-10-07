@@ -74,7 +74,7 @@ is in the app header; the browser's first visit is detected from
 `Accept-Language`.
 
 Routes are the same in both languages: only labels are translated. Money is
-always `EUR`; switching language changes separators and date format, never the
+always `USD`; switching language changes separators and date format, never the
 currency meaning.
 
 ## Environment variables
