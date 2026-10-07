@@ -64,6 +64,21 @@ export type OrganizationListResponse = {
   data: SessionOrganization[];
 };
 
+/**
+ * What the tenant switcher actually needs, deliberately narrower than
+ * SessionOrganization.
+ *
+ * `role_label` is the API's Spanish rendering of the role. It is dropped on the way
+ * across the server/client boundary for two reasons: the switcher renders the role
+ * through the dictionary, and a field that is not in this type cannot be rendered by
+ * accident later. It would otherwise ride along in the RSC payload of every page in
+ * the private area, unused.
+ */
+export type SwitcherOrganization = Omit<
+  SessionOrganization,
+  "role_label" | "joined_at"
+>;
+
 export type CreateOrganizationResponse = {
   data: Organization;
   role: OrganizationRole;
@@ -152,7 +167,13 @@ export type InvitePayload = {
 
 export type CreateInvitationResponse = {
   data: Invitation;
-  accept_url: string | null;
+  /**
+   * Present on every response, not just locally. The API mints the token inside
+   * this same request and this is the only moment it exists in the clear, so it is
+   * returned to the caller who just proved canInvite() on the tenant. No list or
+   * fetch ever carries it — see the invitation list test in the backend.
+   */
+  accept_url: string;
 };
 
 export type InvitationPreview = {
@@ -331,3 +352,15 @@ export type SaleQuery = {
   direction?: SortDirection;
   page?: number;
 };
+
+/**
+ * Mirrors the server's max:2048 on the upload. It is a courtesy, not the gate: the
+ * API validates the same cap and remains the only thing that decides. Checking in
+ * the browser just saves the round trip and explains the limit before the file is
+ * sent.
+ *
+ * Lives here rather than next to the upload code because that module is "use
+ * server", and a value exported from one of those imports as undefined in the
+ * client.
+ */
+export const MAX_LOGO_BYTES = 2 * 1024 * 1024;

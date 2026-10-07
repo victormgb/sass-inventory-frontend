@@ -152,6 +152,59 @@ export function apiUploadOrganizationLogo<T>(
   return laravelFetch<T>("/organizations/logo", { ...session, method: "POST", body });
 }
 
+/**
+ * Forwards an already-encoded multipart body untouched.
+ *
+ * The bytes and the Content-Type travel exactly as the browser produced them,
+ * boundary included. Re-serialising a parsed FormData would work too, and this
+ * endpoint has been reached that way, but the failure this endpoint is prone to is
+ * specifically a multipart body whose boundary does not match the header that
+ * describes it: PHP then sees no file at all and the upload fails with no obvious
+ * cause. Not rebuilding the body is what removes that variable.
+ *
+ * ArrayBuffer rather than a stream because the API caps the file at 2MB, so the
+ * whole body fits comfortably in memory and the non-streaming path avoids the
+ * duplex/double-read problems a request stream runs into.
+ */
+export function apiForwardOrganizationLogo<T>(
+  session: TenantSession,
+  raw: { body: ArrayBuffer; contentType: string },
+): Promise<T> {
+  const headers = new Headers({ Accept: "application/json" });
+
+  headers.set("Content-Type", raw.contentType);
+  headers.set("Authorization", `Bearer ${session.token}`);
+  headers.set("X-Tenant-Slug", session.tenantSlug);
+
+  return laravelFetchWithHeaders<T>("/organizations/logo", {
+    method: "POST",
+    headers,
+    body: raw.body,
+  });
+}
+
+async function laravelFetchWithHeaders<T>(
+  path: string,
+  init: { headers: Headers; body: BodyInit; method: string },
+): Promise<T> {
+  const response = await fetch(`${API_URL}/api/v1${path}`, {
+    method: init.method,
+    headers: init.headers,
+    body: init.body,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}
+
 export function apiRemoveOrganizationLogo<T>(session: TenantSession): Promise<T> {
   return laravelFetch<T>("/organizations/logo", { ...session, method: "DELETE" });
 }

@@ -1,10 +1,15 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function KpiGridSkeleton() {
+/**
+ * The label arrives as a prop rather than being translated here: this renders in a
+ * Suspense fallback position, and a component that has to await a cookie to paint a
+ * placeholder is a component that can suspend where it cannot.
+ */
+export function KpiGridSkeleton({ label }: { label: string }) {
   return (
     <div
       role="status"
-      aria-label="Cargando resumen"
+      aria-label={label}
       className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
     >
       {[0, 1, 2, 3].map((index) => (

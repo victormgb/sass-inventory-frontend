@@ -5,13 +5,19 @@ import { Package } from "lucide-react";
 
 import { tenantDashboardPath } from "@/lib/auth/redirect-path";
 import { readSession } from "@/lib/auth/session";
+import { getTranslate } from "@/lib/i18n/server";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 
 import { RegisterForm } from "./register-form";
 
-export const metadata: Metadata = {
-  title: "Crear cuenta",
-  description: "Registra tu empresa y empieza a gestionar tu inventario.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslate();
+
+  return {
+    title: t("register.title"),
+    description: t("register.subtitle"),
+  };
+}
 
 export default async function RegisterPage() {
   const session = await readSession();
@@ -20,18 +26,24 @@ export default async function RegisterPage() {
     redirect(tenantDashboardPath(session.tenantSlug));
   }
 
+  const t = await getTranslate();
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
+    <main className="relative flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
+
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <span className="mb-4 flex size-12 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
             <Package className="size-6" aria-hidden="true" />
           </span>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Crea tu cuenta
+            {t("register.title")}
           </h1>
           <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">
-            Registra tu empresa y empieza a gestionar inventario y ventas.
+            {t("register.subtitle")}
           </p>
         </div>
 
@@ -40,16 +52,16 @@ export default async function RegisterPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-500">
-          Tu empresa queda aislada: nadie mas accede a sus datos.
+          {t("register.isolationNote")}
         </p>
 
         <p className="mt-3 text-center text-sm text-zinc-500 dark:text-zinc-400">
-          ¿Ya tienes cuenta?{" "}
+          {t("register.haveAccountPrefix")} {" "}
           <Link
             href="/login"
             className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-100 dark:hover:text-white"
           >
-            Inicia sesion
+            {t("register.haveAccountLink")}
           </Link>
         </p>
       </div>

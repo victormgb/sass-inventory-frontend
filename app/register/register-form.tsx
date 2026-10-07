@@ -4,11 +4,13 @@ import { useActionState } from "react";
 import { AlertCircle, Building2, Loader2, Lock, Mail, User } from "lucide-react";
 
 import { FormField } from "@/components/ui/form-field";
+import { useI18n } from "@/lib/i18n/provider";
 
 import { registerAction } from "./actions";
 import { initialRegisterState } from "./state";
 
 export function RegisterForm() {
+  const { t } = useI18n();
   const [state, formAction, pending] = useActionState(registerAction, initialRegisterState);
 
   return (
@@ -26,7 +28,7 @@ export function RegisterForm() {
       <FormField
         id="organization_name"
         name="organization_name"
-        label="Nombre de la empresa"
+        label={t("register.organizationName")}
         autoComplete="organization"
         required
         icon={Building2}
@@ -36,7 +38,7 @@ export function RegisterForm() {
       <FormField
         id="full_name"
         name="full_name"
-        label="Tu nombre"
+        label={t("register.fullName")}
         autoComplete="name"
         required
         icon={User}
@@ -47,7 +49,7 @@ export function RegisterForm() {
         id="email"
         name="email"
         type="email"
-        label="Correo electrónico"
+        label={t("register.email")}
         autoComplete="email"
         required
         icon={Mail}
@@ -58,7 +60,7 @@ export function RegisterForm() {
         id="password"
         name="password"
         type="password"
-        label="Contraseña"
+        label={t("register.password")}
         autoComplete="new-password"
         required
         icon={Lock}
@@ -69,7 +71,7 @@ export function RegisterForm() {
         id="password_confirmation"
         name="password_confirmation"
         type="password"
-        label="Repite la contraseña"
+        label={t("register.passwordConfirmation")}
         autoComplete="new-password"
         required
         icon={Lock}
@@ -84,10 +86,10 @@ export function RegisterForm() {
         {pending ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            Creando cuenta...
+            {t("register.submitting")}
           </>
         ) : (
-          "Crear cuenta"
+          t("register.submit")
         )}
       </button>
     </form>

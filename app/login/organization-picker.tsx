@@ -5,6 +5,8 @@ import { useFormStatus } from "react-dom";
 import { AlertCircle, Building2, Loader2 } from "lucide-react";
 
 import { switchTenantAction, type SwitchTenantState } from "@/lib/auth/tenant-actions";
+import { useI18n } from "@/lib/i18n/provider";
+import { roleLabel } from "@/lib/roles";
 import type { SessionOrganization } from "@/lib/types";
 
 const initialSwitchState: SwitchTenantState = {};
@@ -19,16 +21,17 @@ const initialSwitchState: SwitchTenantState = {};
  * picking an organization cannot replay a credential.
  */
 export function OrganizationPicker({ organizations }: { organizations: SessionOrganization[] }) {
+  const { t } = useI18n();
   const [state, formAction] = useActionState(switchTenantAction, initialSwitchState);
 
   return (
     <div className="space-y-5">
       <div className="space-y-1 text-center">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          Elige una organización
+          {t("login.pickOrganization")}
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Esta cuenta tiene acceso a varias.
+          {t("login.pickOrganizationHint")}
         </p>
       </div>
 
@@ -49,7 +52,10 @@ export function OrganizationPicker({ organizations }: { organizations: SessionOr
               <input type="hidden" name="slug" value={organization.slug} />
               <OrganizationButton
                 name={organization.name}
-                roleLabel={organization.role_label}
+                // The role code, not the API's role_label. That label is a Spanish
+                // string built by the backend and would stay Spanish in an English
+                // session; the code is a wire value the dictionary can translate.
+                role={organization.role}
               />
             </form>
           </li>
@@ -59,7 +65,8 @@ export function OrganizationPicker({ organizations }: { organizations: SessionOr
   );
 }
 
-function OrganizationButton({ name, roleLabel }: { name: string; roleLabel: string }) {
+function OrganizationButton({ name, role }: { name: string; role: string }) {
+  const { t } = useI18n();
   const { pending } = useFormStatus();
 
   return (
@@ -75,7 +82,9 @@ function OrganizationButton({ name, roleLabel }: { name: string; roleLabel: stri
         <span className="block truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
           {name}
         </span>
-        <span className="block text-xs text-zinc-500 dark:text-zinc-400">{roleLabel}</span>
+        <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+          {roleLabel(role, t)}
+        </span>
       </span>
       {pending ? (
         <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />

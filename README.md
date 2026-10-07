@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Inventory SaaS — Frontend
 
-## Getting Started
+Next.js **16.3.6** (App Router, Turbopack) + React 19, TypeScript 5 (`strict`),
+Tailwind CSS v4. It is the user-facing half of the multi-tenant inventory and
+sales SaaS, and it is a **BFF** in front of the Laravel API in `../backend`.
 
-First, run the development server:
+## Architecture
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The browser only ever talks to Next.js; the session token never leaves the
+server:
+
+```
+browser ──httpOnly cookies──> Next.js (server) ──Bearer + X-Tenant-Slug──> Laravel API
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Session cookies: `erp_token`, `erp_tenant` (httpOnly, so no client-side
+  token handling and no CORS configuration anywhere).
+- `proxy.ts` only checks that a session cookie exists and that the URL tenant
+  matches it; real validation (401/403) happens server-side per request.
+- The private area is `/app/[tenant]/...` with English route segments.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Requirements
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node `24` / npm `11`
 
-## Learn More
+## Getting started
 
-To learn more about Next.js, take a look at the following resources:
+Start the API first (see `../backend/README.md`), then:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+cp .env.example .env                # set LARAVEL_API_URL
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://localhost:3000](http://localhost:3000).
 
-## Deploy on Vercel
+## Commands
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Development server (Turbopack) |
+| `npm run build` | Production build — also the typecheck |
+| `npm run lint` | ESLint (flat config) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+There is no separate `typecheck` script and no test runner configured.
+
+## Routes
+
+Public paths and the private tenant area (English segments by design):
+
+| Path | Purpose |
+| --- | --- |
+| `/login`, `/register` | Authentication (login has an organization picker for multi-account users) |
+| `/invitations/accept?token=...` | Anonymous invitation preview/acceptance |
+| `/app/[tenant]/dashboard` | Today's summary |
+| `/app/[tenant]/products` | Product catalog (search, filters, CRUD) |
+| `/app/[tenant]/sales` | Sales list, filters and the sale form |
+| `/app/[tenant]/sales/[saleId]` | Sale detail |
+| `/app/[tenant]/team` | Members and invitation management (copy-link on success) |
+| `/app/[tenant]/settings` | Organization settings (ADMIN only): rename, logo, delete |
+
+The bare `/app/[tenant]` is not a page; it redirects to the dashboard so stale
+hand-written links degrade instead of 404ing.
+
+## Language
+
+`es` and `en`. The locale lives in the `erp_locale` cookie — **not** in the
+URL — so emailed invitation links never go stale when someone switches
+language. Resolution order: `erp_locale` cookie → `Accept-Language` →
+`es`. The dictionary is typed (`Dictionary = typeof en`), so a missing or
+mistyped translation is a compile error, not a runtime gap. The language picker
+is in the app header; the browser's first visit is detected from
+`Accept-Language`.
+
+Routes are the same in both languages: only labels are translated. Money is
+always `EUR`; switching language changes separators and date format, never the
+currency meaning.
+
+## Environment variables
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `LARAVEL_API_URL` | — | Base URL of the backend API (`http://127.0.0.1:8000`) |
+
+## Notes
+
+- The logo upload is a Route Handler (`app/api/organizations/logo`) rather than
+  a Server Action, because actions cap their body at 1 MB and a big multipart
+  upload would dead-end on the framework before reaching the API.
+- `node_modules/next/dist/docs/` ships the Next.js 16 guides — read them before
+  writing code; several APIs differ from older Next.js versions.
+- `AGENTS.md` documents the full conventions and security decisions.

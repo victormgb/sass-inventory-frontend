@@ -9,7 +9,9 @@ import {
   type CreateOrganizationState,
 } from "@/lib/auth/organization-actions";
 import { switchTenantAction, type SwitchTenantState } from "@/lib/auth/tenant-actions";
-import type { SessionOrganization } from "@/lib/types";
+import { useI18n } from "@/lib/i18n/provider";
+import { roleLabel } from "@/lib/roles";
+import type { SwitcherOrganization } from "@/lib/types";
 
 import { OrganizationLogo } from "./organization-logo";
 
@@ -28,11 +30,12 @@ export function TenantSwitcher({
   organizations,
 }: {
   tenant: string;
-  organizations: SessionOrganization[];
+  organizations: SwitcherOrganization[];
 }) {
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
 
   const current = organizations.find((item) => item.slug === tenant);
 
@@ -74,16 +77,20 @@ export function TenantSwitcher({
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-haspopup="true"
+        aria-label={t("shell.switchOrganization")}
         className="flex w-full items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-left text-sm transition hover:bg-zinc-50 disabled:cursor-default dark:border-zinc-700 dark:hover:bg-zinc-800"
       >
-        <OrganizationLogo name={current?.name ?? "Organización"} logoUrl={current?.logo_url ?? null} />
+        <OrganizationLogo
+              name={current?.name ?? t("organizations.unnamed")}
+              logoUrl={current?.logo_url ?? null}
+            />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium text-zinc-900 dark:text-zinc-50">
-            {current?.name ?? "Organización"}
+            {current?.name ?? t("organizations.unnamed")}
           </span>
           {canSwitch ? (
             <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
-              {current?.role_label ?? ""}
+              {current ? roleLabel(current.role, t) : ""}
             </span>
           ) : null}
         </span>
@@ -129,7 +136,7 @@ export function TenantSwitcher({
                 className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-zinc-600 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
               >
                 <Plus className="size-4" aria-hidden="true" />
-                Nueva organización
+                {t("organizations.new")}
               </button>
             )}
           </div>
@@ -150,9 +157,10 @@ function SwitchRow({
   organization,
   isCurrent,
 }: {
-  organization: SessionOrganization;
+  organization: SwitcherOrganization;
   isCurrent: boolean;
 }) {
+  const { t } = useI18n();
   const [state, formAction] = useActionState(switchTenantAction, INITIAL_SWITCH);
 
   if (isCurrent) {
@@ -163,7 +171,7 @@ function SwitchRow({
       >
         <span className="min-w-0 flex-1 truncate">{organization.name}</span>
         <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
-          {organization.role_label}
+          {roleLabel(organization.role, t)}
         </span>
         <Check className="size-4 shrink-0" aria-hidden="true" />
       </div>
@@ -176,7 +184,7 @@ function SwitchRow({
     <div>
       <form action={formAction}>
         <input type="hidden" name="slug" value={organization.slug} />
-        <SubmitRow label={organization.name} roleLabel={organization.role_label} />
+        <SubmitRow label={organization.name} roleLabel={roleLabel(organization.role, t)} />
       </form>
       {state.error ? (
         <p role="alert" className="px-3 pb-2 text-xs text-red-600 dark:text-red-400">
@@ -206,6 +214,7 @@ function SubmitRow({ label, roleLabel }: { label: string; roleLabel: string }) {
 }
 
 function CreateOrganizationForm({ onCancel }: { onCancel: () => void }) {
+  const { t } = useI18n();
   const [state, formAction] = useActionState(
     createOrganizationAction,
     INITIAL_CREATE,
@@ -218,7 +227,7 @@ function CreateOrganizationForm({ onCancel }: { onCancel: () => void }) {
           htmlFor="new-organization-name"
           className="sr-only"
         >
-          Nombre de la nueva organización
+          {t("organizations.nameLabel")}
         </label>
         <input
           id="new-organization-name"
@@ -226,7 +235,7 @@ function CreateOrganizationForm({ onCancel }: { onCancel: () => void }) {
           autoFocus
           required
           maxLength={120}
-          placeholder="Nombre de la organización"
+          placeholder={t("organizations.namePlaceholder")}
           className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
         />
       </div>
@@ -248,7 +257,7 @@ function CreateOrganizationForm({ onCancel }: { onCancel: () => void }) {
           onClick={onCancel}
           className="rounded-md px-2 py-1.5 text-xs text-zinc-600 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
         >
-          Cancelar
+          {t("common.cancel")}
         </button>
       </div>
     </form>
@@ -256,6 +265,7 @@ function CreateOrganizationForm({ onCancel }: { onCancel: () => void }) {
 }
 
 function CreateSubmitButton() {
+  const { t } = useI18n();
   const { pending } = useFormStatus();
 
   return (
@@ -267,7 +277,7 @@ function CreateSubmitButton() {
       {pending ? (
         <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
       ) : null}
-      Crear
+      {t("organizations.create")}
     </button>
   );
 }

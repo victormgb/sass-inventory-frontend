@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ApiError, apiAcceptInvitation } from "@/lib/api/laravel";
 import { tenantDashboardPath } from "@/lib/auth/redirect-path";
 import { writeSession } from "@/lib/auth/session";
+import { getTranslate } from "@/lib/i18n/server";
 import type { AcceptInvitationResponse } from "@/lib/types";
 
 import type { AcceptState } from "./state";
@@ -17,16 +18,17 @@ export async function acceptInvitationAction(
   _previous: AcceptState,
   formData: FormData,
 ): Promise<AcceptState> {
+  const t = await getTranslate();
   const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
   const passwordConfirmation = String(formData.get("password_confirmation") ?? "");
 
   if (!token) {
-    return { errors: {}, message: "El enlace de invitacion no es valido." };
+    return { errors: {}, message: t("invitations.invalidLink") };
   }
 
   if (password !== passwordConfirmation) {
-    return { errors: { password_confirmation: ["Las contrasenas no coinciden."] } };
+    return { errors: { password_confirmation: [t("invitations.passwordMismatch")] } };
   }
 
   let response: AcceptInvitationResponse;
@@ -47,14 +49,14 @@ export async function acceptInvitationAction(
       if (error.status === 409) {
         return {
           errors: {},
-          message: "Ya existe una cuenta con este correo. Inicia sesion para entrar.",
+          message: t("invitations.accountExists"),
         };
       }
 
       if (error.status === 410) {
         return {
           errors: {},
-          message: "Esta invitacion ya no es valida. Pide una nueva a quien te invito.",
+          message: t("invitations.noLongerValid"),
         };
       }
 
@@ -63,7 +65,7 @@ export async function acceptInvitationAction(
       }
 
       if (error.status === 404) {
-        return { errors: {}, message: "El enlace de invitacion no es valido." };
+        return { errors: {}, message: t("invitations.invalidLink") };
       }
 
       return { errors: {}, message: error.message };

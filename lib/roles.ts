@@ -1,10 +1,5 @@
+import type { Translate } from "@/lib/i18n/types";
 import type { OrganizationRole } from "@/lib/types";
-
-export const ROLE_LABELS: Record<OrganizationRole, string> = {
-  ADMIN: "Administrador",
-  MANAGER: "Gerente",
-  CASHIER: "Cajero",
-};
 
 /**
  * Mirrors App\Enums\OrganizationRole in Laravel.
@@ -19,8 +14,23 @@ const GRANTABLE_ROLES: Record<OrganizationRole, readonly OrganizationRole[]> = {
   CASHIER: [],
 };
 
-export function roleLabel(role: OrganizationRole | string): string {
-  return ROLE_LABELS[role as OrganizationRole] ?? role;
+/**
+ * Display name for a role, resolved through the dictionary.
+ *
+ * Takes the translator rather than reading one itself: this module is imported by
+ * Client Components, which cannot read cookies, and threading a translator through
+ * every caller would be worse than the string lookup.
+ *
+ * The key is the enum value, never the translated text. These three strings are
+ * what the API accepts as a role, so translating them would break the contract --
+ * this only changes what the person reads.
+ */
+export function roleLabel(role: OrganizationRole | string, t: Translate): string {
+  if (role === "ADMIN" || role === "MANAGER" || role === "CASHIER") {
+    return t(`roles.${role}`);
+  }
+
+  return role;
 }
 
 export function grantableRoles(role: OrganizationRole | null): readonly OrganizationRole[] {
@@ -65,8 +75,15 @@ export function canManageOrganization(role: OrganizationRole | null): boolean {
   return role === "ADMIN";
 }
 
+/**
+ * Roles the current user may hand out, with translated labels.
+ *
+ * The value is the enum and the label is display copy, which is why this pairs a
+ * wire value with a translated name rather than translating the list itself.
+ */
 export function roleOptions(
   role: OrganizationRole | null,
+  t: Translate,
 ): { value: OrganizationRole; label: string }[] {
-  return grantableRoles(role).map((value) => ({ value, label: ROLE_LABELS[value] }));
+  return grantableRoles(role).map((value) => ({ value, label: roleLabel(value, t) }));
 }

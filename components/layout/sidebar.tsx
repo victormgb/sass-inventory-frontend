@@ -5,27 +5,29 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Package, Receipt, Settings, Users } from "lucide-react";
 
 import { canManageOrganization } from "@/lib/roles";
-import type { OrganizationRole, SessionOrganization } from "@/lib/types";
+import { useI18n } from "@/lib/i18n/provider";
+import type { DictionaryKey } from "@/lib/i18n/types";
+import type { OrganizationRole, SwitcherOrganization } from "@/lib/types";
 
 import { OrganizationLogo } from "./organization-logo";
 import { TenantSwitcher } from "./tenant-switcher";
 
 type NavItem = {
   segment: string;
-  label: string;
+  labelKey: DictionaryKey;
   icon: typeof LayoutDashboard;
   /** Hidden when false. Mirrors the API's authorize(), which still refuses. */
   adminOnly?: boolean;
 };
 
 const NAV_ITEMS: readonly NavItem[] = [
-  { segment: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { segment: "productos", label: "Productos", icon: Package },
-  { segment: "ventas", label: "Ventas", icon: Receipt },
-  { segment: "equipo", label: "Equipo", icon: Users },
+  { segment: "dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { segment: "products", labelKey: "nav.products", icon: Package },
+  { segment: "sales", labelKey: "nav.sales", icon: Receipt },
+  { segment: "team", labelKey: "nav.team", icon: Users },
   // Only reachable by an owner. Hidden rather than disabled because a settings
   // entry that always says "ask an admin" is noise for everyone else.
-  { segment: "configuracion", label: "Configuración", icon: Settings, adminOnly: true },
+  { segment: "settings", labelKey: "nav.settings", icon: Settings, adminOnly: true },
 ];
 
 export function Sidebar({
@@ -38,9 +40,10 @@ export function Sidebar({
   tenant: string;
   organizationName: string;
   logoUrl: string | null;
-  organizations: SessionOrganization[];
+  organizations: SwitcherOrganization[];
   role: OrganizationRole | null;
 }) {
+  const { t } = useI18n();
   const pathname = usePathname();
   const base = `/app/${tenant}`;
   const visible = NAV_ITEMS.filter((item) => !item.adminOnly || canManageOrganization(role));
@@ -58,9 +61,9 @@ export function Sidebar({
         <TenantSwitcher tenant={tenant} organizations={organizations} />
       </div>
 
-      <nav aria-label="Navegación principal" className="flex-1 p-3">
+      <nav aria-label={t("nav.main")} className="flex-1 p-3">
         <ul className="flex gap-1 lg:flex-col">
-          {visible.map(({ segment, label, icon: Icon }) => {
+          {visible.map(({ segment, labelKey, icon: Icon }) => {
             const href = `${base}/${segment}`;
             const isActive = pathname === href || pathname.startsWith(`${href}/`);
 
@@ -76,7 +79,7 @@ export function Sidebar({
                   }`}
                 >
                   <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  {label}
+                  {t(labelKey)}
                 </Link>
               </li>
             );

@@ -1,7 +1,12 @@
+"use client";
+
 import { LogOut } from "lucide-react";
 
 import { roleLabel } from "@/lib/roles";
+import { useI18n } from "@/lib/i18n/provider";
 import { logoutAction } from "@/app/app/[tenant]/actions";
+
+import { LanguageSwitcher } from "./language-switcher";
 
 type HeaderProps = {
   userName: string;
@@ -10,6 +15,7 @@ type HeaderProps = {
 };
 
 export function Header({ userName, userEmail, role }: HeaderProps) {
+  const { t } = useI18n();
   const initials = userName
     .split(" ")
     .filter(Boolean)
@@ -19,9 +25,12 @@ export function Header({ userName, userEmail, role }: HeaderProps) {
 
   return (
     <header className="flex items-center justify-between gap-4 border-b border-zinc-200 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-900">
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        {role ? roleLabel(role) : null}
-      </p>
+      <div className="flex items-center gap-4">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          {role ? roleLabel(role, t) : null}
+        </p>
+        <LanguageSwitcher />
+      </div>
 
       <div className="flex items-center gap-3">
         <div className="hidden text-right sm:block">
@@ -40,7 +49,7 @@ export function Header({ userName, userEmail, role }: HeaderProps) {
             className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
           >
             <LogOut className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Salir</span>
+            <span className="hidden sm:inline">{t("shell.logout")}</span>
           </button>
         </form>
       </div>

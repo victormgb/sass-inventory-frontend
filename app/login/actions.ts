@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ApiError, apiLogin } from "@/lib/api/laravel";
 import { safeRedirectPath } from "@/lib/auth/redirect-path";
 import { writeSession } from "@/lib/auth/session";
+import { getTranslate } from "@/lib/i18n/server";
 import type { LoginResponse } from "@/lib/types";
 
 import type { LoginState } from "./state";
@@ -13,6 +14,7 @@ export async function loginAction(
   _previous: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
+  const t = await getTranslate();
   const organizationSlug = String(formData.get("organization_slug") ?? "").trim();
   const requestedPath = safeRedirectPath(formData.get("next"));
 
@@ -35,11 +37,19 @@ export async function loginAction(
       if (error.status === 429) {
         return {
           errors: {},
-          message: "Demasiados intentos fallidos. Espera un minuto antes de reintentar.",
+          message: t("login.tooManyAttempts"),
         };
       }
 
-      return { errors: {}, message: error.message };
+      // Laravel's own message last, because it is not translated: the backend
+      // sends its default English validation text, which would read as a foreign
+      // language in the Spanish UI. 401 is the case worth translating here, since
+      // wrong credentials are the one message a user reliably reads.
+      if (error.status === 401) {
+        return { errors: {}, message: t("login.invalidCredentials") };
+      }
+
+      return { errors: {}, message: t("errors.generic") };
     }
 
     throw error;

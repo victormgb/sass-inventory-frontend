@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { AlertCircle, Loader2, Lock, Mail, User } from "lucide-react";
 
+import { useI18n } from "@/lib/i18n/provider";
+
 import { acceptInvitationAction } from "./actions";
 import { initialAcceptState } from "./state";
 
@@ -54,6 +56,7 @@ function Field({ id, name, label, type = "text", autoComplete, icon: Icon, error
 }
 
 export function AcceptForm({ token, email }: { token: string; email: string }) {
+  const { t } = useI18n();
   const [state, formAction, pending] = useActionState(
     acceptInvitationAction,
     initialAcceptState,
@@ -76,7 +79,7 @@ export function AcceptForm({ token, email }: { token: string; email: string }) {
       <Field
         id="full_name"
         name="full_name"
-        label="Tu nombre"
+        label={t("invitations.fullNameLabel")}
         autoComplete="name"
         icon={User}
         errors={state.errors.full_name}
@@ -84,7 +87,7 @@ export function AcceptForm({ token, email }: { token: string; email: string }) {
 
       <div>
         <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          Correo electronico
+          {t("invitations.emailLabel")}
         </label>
         <div className="relative">
           <Mail className={iconClasses} aria-hidden="true" />
@@ -99,7 +102,7 @@ export function AcceptForm({ token, email }: { token: string; email: string }) {
           />
         </div>
         <p id="email-hint" className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-500">
-          La invitacion es para esta direccion, no se puede cambiar.
+          {t("invitations.emailHint")}
         </p>
       </div>
 
@@ -107,7 +110,7 @@ export function AcceptForm({ token, email }: { token: string; email: string }) {
         id="password"
         name="password"
         type="password"
-        label="Contrasena"
+        label={t("invitations.passwordLabel")}
         autoComplete="new-password"
         icon={Lock}
         errors={state.errors.password}
@@ -117,7 +120,7 @@ export function AcceptForm({ token, email }: { token: string; email: string }) {
         id="password_confirmation"
         name="password_confirmation"
         type="password"
-        label="Repite la contrasena"
+        label={t("invitations.passwordConfirmationLabel")}
         autoComplete="new-password"
         icon={Lock}
         errors={state.errors.password_confirmation}
@@ -131,10 +134,10 @@ export function AcceptForm({ token, email }: { token: string; email: string }) {
         {pending ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            Creando tu cuenta...
+            {t("invitations.submitting")}
           </>
         ) : (
-          "Aceptar invitacion"
+          t("invitations.submit")
         )}
       </button>
     </form>

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { ApiError, apiCreateOrganization } from "@/lib/api/laravel";
 import { readSession, writeSession } from "@/lib/auth/session";
+import { getTranslate } from "@/lib/i18n/server";
 import type { CreateOrganizationResponse, FieldErrors } from "@/lib/types";
 
 import { tenantDashboardPath } from "./redirect-path";
@@ -26,9 +27,10 @@ export async function createOrganizationAction(
   formData: FormData,
 ): Promise<CreateOrganizationState> {
   const name = String(formData.get("name") ?? "").trim();
+  const t = await getTranslate();
 
   if (!name) {
-    return { fieldErrors: { name: ["El nombre es obligatorio."] } };
+    return { fieldErrors: { name: [t("organizations.nameRequired")] } };
   }
 
   const session = await readSession();
@@ -51,7 +53,7 @@ export async function createOrganizationAction(
       return { fieldErrors };
     }
 
-    return { error: "No se pudo crear la organización." };
+    return { error: t("organizations.createFailed") };
   }
 
   // Land in the new organization instead of the one the form was opened from: the

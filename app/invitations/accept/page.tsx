@@ -4,14 +4,20 @@ import { AlertTriangle, Building2, LogIn, Package } from "lucide-react";
 
 import { ApiError, apiInvitationPreview } from "@/lib/api/laravel";
 import { formatDate } from "@/lib/format";
+import { roleLabel } from "@/lib/roles";
+import { getLocale, getTranslate } from "@/lib/i18n/server";
+import type { Translate } from "@/lib/i18n/types";
 import type { InvitationPreview, InvitationPreviewResponse } from "@/lib/types";
 
 import { AcceptForm } from "./accept-form";
 
-export const metadata: Metadata = {
-  title: "Aceptar invitacion",
-  description: "Crea tu cuenta y accede al equipo que te invito.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslate();
+  return {
+    title: t("invitations.submit"),
+    description: t("invitations.description"),
+  };
+}
 
 /**
  * The preview is a credential-free lookup: anyone holding the link sees what it
@@ -23,9 +29,9 @@ type Preview =
   | { status: "expired"; message: string }
   | { status: "invalid"; message: string };
 
-async function loadPreview(token: string): Promise<Preview> {
+async function loadPreview(token: string, t: Translate): Promise<Preview> {
   if (!token) {
-    return { status: "invalid", message: "El enlace de invitacion no es valido." };
+    return { status: "invalid", message: t("invitations.invalidLink") };
   }
 
   try {
@@ -37,14 +43,12 @@ async function loadPreview(token: string): Promise<Preview> {
       if (error.status === 410) {
         return {
           status: "expired",
-          message:
-            error.message ||
-            "Esta invitacion ya no es valida. Pide una nueva a quien te invito.",
+          message: error.message || t("invitations.noLongerValid"),
         };
       }
 
       if (error.status === 404) {
-        return { status: "invalid", message: "El enlace de invitacion no es valido." };
+        return { status: "invalid", message: t("invitations.invalidLink") };
       }
     }
 
@@ -72,18 +76,20 @@ export default async function AcceptInvitationPage({
   searchParams,
 }: PageProps<"/invitations/accept">) {
   const { token } = await searchParams;
-  const preview = await loadPreview(typeof token === "string" ? token : "");
+  const t = await getTranslate();
+  const locale = await getLocale();
+  const preview = await loadPreview(typeof token === "string" ? token : "", t);
 
   if (preview.status !== "ready") {
     return (
       <Problem
-        title={preview.status === "expired" ? "Invitacion caducada" : "Enlace no valido"}
+        title={preview.status === "expired" ? t("invitations.expiredTitle") : t("invitations.invalidTitle")}
         message={preview.message}
       />
     );
   }
 
-  const { organization, role_label, email, user_exists } = preview.data;
+  const { organization, role, email, user_exists } = preview.data;
 
   if (user_exists) {
     return (
@@ -93,22 +99,22 @@ export default async function AcceptInvitationPage({
             <LogIn className="size-6" aria-hidden="true" />
           </span>
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Ya tienes una cuenta
+            {t("invitations.existingAccountTitle")}
           </h1>
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            {email} ya esta registrado. Inicia sesion para entrar en {organization.name}.
+            {t("invitations.existingAccountBody", { email, organization: organization.name })}
           </p>
           <Link
             href={`/login?next=${encodeURIComponent(`/app/${organization.slug}/dashboard`)}`}
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
           >
             <LogIn className="size-4" aria-hidden="true" />
-            Iniciar sesion
+            {t("invitations.signIn")}
           </Link>
           <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-500">
-            Si no recuerdas tu contrasena,{" "}
+            {t("invitations.forgotPasswordPrefix")}{" "}
             <Link href="/login" className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200">
-              pide ayuda a quien te invito
+              {t("invitations.forgotPasswordLink")}
             </Link>
             .
           </p>
@@ -124,32 +130,34 @@ export default async function AcceptInvitationPage({
           <span className="mb-4 flex size-12 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
             <Package className="size-6" aria-hidden="true" />
           </span>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Te han invitado
-          </h1>
-        </div>
-
-        <div className="mb-5 flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-            <Building2 className="size-4" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              {organization.name}
-            </p>
-            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Entraras como {role_label.toLowerCase()}. Este enlace caduca el{" "}
-              {formatDate(preview.data.expires_at)}.
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              {t("invitations.invitedTitle")}
+            </h1>
           </div>
-        </div>
 
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-            Crea tu cuenta
-          </h2>
-          <AcceptForm token={String(token)} email={email} />
-        </div>
+          <div className="mb-5 flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+              <Building2 className="size-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                {organization.name}
+              </p>
+              <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                {t("invitations.roleNotice", {
+                  role: roleLabel(role, t),
+                  date: formatDate(preview.data.expires_at, locale),
+                })}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              {t("invitations.createAccountTitle")}
+            </h2>
+            <AcceptForm token={String(token)} email={email} />
+          </div>
       </div>
     </main>
   );

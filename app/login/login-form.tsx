@@ -5,12 +5,14 @@ import Link from "next/link";
 import { AlertCircle, Loader2, Lock, Mail } from "lucide-react";
 
 import { FormField } from "@/components/ui/form-field";
+import { useI18n } from "@/lib/i18n/provider";
 
 import { loginAction } from "./actions";
 import { OrganizationPicker } from "./organization-picker";
 import { initialLoginState } from "./state";
 
 export function LoginForm({ next }: { next?: string }) {
+  const { t } = useI18n();
   const [state, formAction, pending] = useActionState(loginAction, initialLoginState);
 
   // Password already verified: the form gives way to the organization picker
@@ -36,7 +38,7 @@ export function LoginForm({ next }: { next?: string }) {
         id="email"
         name="email"
         type="email"
-        label="Correo electrónico"
+        label={t("login.email")}
         autoComplete="email"
         placeholder="tu@empresa.com"
         required
@@ -48,7 +50,7 @@ export function LoginForm({ next }: { next?: string }) {
         id="password"
         name="password"
         type="password"
-        label="Contraseña"
+        label={t("login.password")}
         autoComplete="current-password"
         required
         icon={Lock}
@@ -63,20 +65,20 @@ export function LoginForm({ next }: { next?: string }) {
         {pending ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            Entrando...
+            {t("login.submitting")}
           </>
         ) : (
-          "Iniciar sesión"
+          t("login.submit")
         )}
       </button>
 
       <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
-        ¿Aún no tienes cuenta?{" "}
+        {t("login.noAccountPrefix")}{" "}
         <Link
           href="/register"
           className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-100 dark:hover:text-white"
         >
-          Crear una
+          {t("login.noAccountLink")}
         </Link>
       </p>
     </form>

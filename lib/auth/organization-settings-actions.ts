@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { ApiError, apiDeleteOrganization, apiRemoveOrganizationLogo, apiUpdateOrganization, apiUploadOrganizationLogo } from "@/lib/api/laravel";
+import { ApiError, apiDeleteOrganization, apiRemoveOrganizationLogo, apiUpdateOrganization } from "@/lib/api/laravel";
 import { tenantDashboardPath } from "@/lib/auth/redirect-path";
 import { readSession, clearSession, writeSession } from "@/lib/auth/session";
+import { getTranslate } from "@/lib/i18n/server";
 import type {
   DeleteOrganizationResponse,
   FieldErrors,
@@ -19,13 +20,6 @@ export type SettingsState = {
 };
 
 /**
- * Mirrors the server's max:2048 on the upload. It is a courtesy, not the gate: the
- * API validates the same cap and remains the only thing that decides. Checking here
- * just saves the round trip and explains the limit before the file is sent.
- */
-const MAX_LOGO_BYTES = 2 * 1024 * 1024;
-
-/**
  * Renames the organization.
  *
  * The session is not rewritten here: the slug does not change on rename, so the
@@ -37,6 +31,7 @@ export async function updateOrganizationAction(
   formData: FormData,
 ): Promise<SettingsState> {
   const name = String(formData.get("name") ?? "").trim();
+  const t = await getTranslate();
 
   const session = await readSession();
 
@@ -53,72 +48,16 @@ export async function updateOrganizationAction(
       }
 
       if (error.status === 403) {
-        return { error: "Solo un administrador puede cambiar estos ajustes." };
+        return { error: t("settings.saveForbidden") };
       }
     }
 
-    return { error: "No se pudieron guardar los cambios." };
+    return { error: t("settings.saveFailed") };
   }
 
   revalidatePath(`/app/${session.tenantSlug}`, "layout");
 
-  return { success: "Cambios guardados." };
-}
-
-/**
- * Uploads a logo file. The file never reaches the browser's own storage and the URL
- * that gets saved is one Laravel minted, so unlike the logo_url field a user cannot
- * point the tenant's logo at an address of their choosing.
- */
-export async function uploadOrganizationLogoAction(
-  _state: SettingsState,
-  formData: FormData,
-): Promise<SettingsState> {
-  const session = await readSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  const file = formData.get("logo");
-
-  if (!(file instanceof File) || file.size === 0) {
-    return { fieldErrors: { logo: ["Selecciona una imagen."] } };
-  }
-
-  if (file.size > MAX_LOGO_BYTES) {
-    return {
-      fieldErrors: { logo: ["La imagen supera el límite de 2 MB."] },
-    };
-  }
-
-  const body = new FormData();
-  body.set("logo", file);
-
-  try {
-    console.log("Uploading logo for organization", session.tenantSlug, "with file", file.name, "size", file.size);
-    await apiUploadOrganizationLogo<UpdateOrganizationResponse>(session, body);
-  } catch (error) {
-    if (error instanceof ApiError) {
-      if (error.status === 422) {
-        return { fieldErrors: error.fieldErrors };
-      }
-
-      if (error.status === 403) {
-        return { error: "Solo un administrador puede cambiar el logo." };
-      }
-
-      if (error.status === 413 || error.status === 429) {
-        return { error: "Demasiadas subidas seguidas. Espera un momento." };
-      }
-    }
-
-    return { error: "No se pudo subir el logo. Inténtalo de nuevo." };
-  }
-
-  revalidatePath(`/app/${session.tenantSlug}`, "layout");
-
-  return { success: "Logo actualizado." };
+  return { success: t("settings.saved") };
 }
 
 /**
@@ -128,6 +67,7 @@ export async function uploadOrganizationLogoAction(
  * action is free to ignore the state and the payload it is handed.
  */
 export async function removeOrganizationLogoAction(): Promise<SettingsState> {
+  const t = await getTranslate();
   const session = await readSession();
 
   if (!session) {
@@ -138,15 +78,15 @@ export async function removeOrganizationLogoAction(): Promise<SettingsState> {
     await apiRemoveOrganizationLogo<UpdateOrganizationResponse>(session);
   } catch (error) {
     if (error instanceof ApiError && error.status === 403) {
-      return { error: "Solo un administrador puede quitar el logo." };
+      return { error: t("settings.removeForbidden") };
     }
 
-    return { error: "No se pudo quitar el logo." };
+    return { error: t("settings.removeFailed") };
   }
 
   revalidatePath(`/app/${session.tenantSlug}`, "layout");
 
-  return { success: "Logo eliminado." };
+  return { success: t("settings.logo.removed") };
 }
 
 /**
@@ -161,6 +101,7 @@ export async function deleteOrganizationAction(
   _state: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  const t = await getTranslate();
   const session = await readSession();
 
   if (!session) {
@@ -173,7 +114,7 @@ export async function deleteOrganizationAction(
   // between a stray click and an unrecoverable delete.
   if (confirmation !== session.tenantSlug) {
     return {
-      error: `Escribe "${session.tenantSlug}" para confirmar el borrado.`,
+      error: t("settings.confirmMismatch", { slug: session.tenantSlug }),
     };
   }
 
@@ -183,10 +124,10 @@ export async function deleteOrganizationAction(
     deleted = await apiDeleteOrganization<DeleteOrganizationResponse>(session);
   } catch (error) {
     if (error instanceof ApiError && error.status === 403) {
-      return { error: "Solo un administrador puede eliminar la organización." };
+      return { error: t("settings.deleteForbidden") };
     }
 
-    return { error: "No se pudo eliminar la organización." };
+    return { error: t("settings.deleteFailed") };
   }
 
   const remaining = deleted.organizations[0];

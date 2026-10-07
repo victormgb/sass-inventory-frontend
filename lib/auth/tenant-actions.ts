@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { ApiError, apiMe } from "@/lib/api/laravel";
+import { getTranslate } from "@/lib/i18n/server";
 import type { MeResponse } from "@/lib/types";
 
 import { tenantDashboardPath } from "./redirect-path";
@@ -30,9 +31,10 @@ export async function switchTenantAction(
   formData: FormData,
 ): Promise<SwitchTenantState> {
   const slug = String(formData.get("slug") ?? "").trim();
+  const t = await getTranslate();
 
   if (!slug) {
-    return { error: "No se indicó la organización." };
+    return { error: t("organizations.switchMissing") };
   }
 
   const session = await readSession();
@@ -55,11 +57,11 @@ export async function switchTenantAction(
       redirect("/login");
     }
 
-    return { error: "No se pudo comprobar tu sesión. Inténtalo de nuevo." };
+    return { error: t("organizations.switchCheckFailed") };
   }
 
   if (!me.organizations.some((organization) => organization.slug === slug)) {
-    return { error: "No perteneces a esa organización." };
+    return { error: t("organizations.switchNotMember") };
   }
 
   // No new token: the Sanctum token is user-wide, not tenant-bound, so only the
